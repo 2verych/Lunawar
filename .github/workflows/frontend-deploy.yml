@@ -1,0 +1,25 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: jino
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Upload via FTP
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ${{ vars.FTP_HOST }}
+          username: ${{ vars.FTP_USERNAME }}
+          password: ${{ vars.FTP_PASSWORD }}
+          local-dir: frontend
+          server-dir: /
