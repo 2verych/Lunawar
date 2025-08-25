@@ -15,11 +15,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Show FTP variables
+        run: |
+          echo "FTP_SERVER=${FTP_SERVER:-missing}"
+          echo "FTP_USERNAME=${FTP_USERNAME:-missing}"
+          if [ -z "$FTP_PASSWORD" ]; then
+            echo "FTP_PASSWORD is missing"
+          else
+            echo "FTP_PASSWORD is set"
+          fi
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+
       - name: Upload via FTP
-        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        uses: samkirkland/ftp-deploy@v2
         with:
-          server: ${{ vars.FTP_HOST }}
-          username: ${{ vars.FTP_USERNAME }}
-          password: ${{ vars.FTP_PASSWORD }}
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
           local-dir: frontend
-          server-dir: /
+          remote-dir: /
+          protocol: ftps
