@@ -31,6 +31,6 @@ jobs:
           server: ${{ vars.FTP_SERVER }}
           username: ${{ vars.FTP_USERNAME }}
           password: ${{ vars.FTP_PASSWORD }}
-          local-dir: frontend
+          local-dir: frontend/
           server-dir: /
           protocol: ftps
