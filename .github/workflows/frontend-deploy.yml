@@ -21,16 +21,16 @@ jobs:
             echo "FTP_PASSWORD is set"
           fi
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER: ${{ vars.FTP_SERVER }}
+          FTP_USERNAME: ${{ vars.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ vars.FTP_PASSWORD }}
 
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ vars.FTP_SERVER }}
+          username: ${{ vars.FTP_USERNAME }}
+          password: ${{ vars.FTP_PASSWORD }}
           local-dir: frontend
           server-dir: /
           protocol: ftps
