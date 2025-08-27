@@ -1,8 +1,9 @@
 # Roadmap
+Выполненные пункты отмечаются префиксом [DONE], пропущенные — [SKIP].
 
-- [x] Документация: технический план (README) и спецификация API
+- [DONE] Документация: технический план (README) и спецификация API
 - [ ] Структура монорепозитория: apps/, packages/, infra/ и .env.example
-- [ ] Docker Compose инфраструктура и Makefile
+- [SKIP] Docker Compose инфраструктура и Makefile
 - [ ] Общие сущности и схема ключей Redis в packages/shared
 - [ ] Каркас сервера на Node.js + Express, Redis и /health
 - [ ] Авторизация через Google OAuth и управление сессиями
