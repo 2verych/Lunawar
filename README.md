@@ -235,3 +235,17 @@ infra/       → конфигурация Docker и деплоя
     - Long polling обновления.
     - Админка с настройками.
 
+
+## Структура репозитория
+
+```
+apps/
+  server/    - backend application
+  web/       - player-facing frontend
+  admin/     - administration panel
+packages/
+  shared/    - shared utilities and types
+infra/       - infrastructure and deployment configs
+```
+
+Монорепозиторий использует npm workspaces для управления зависимостями.

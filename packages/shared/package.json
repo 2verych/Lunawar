@@ -1,0 +1,9 @@
+{
+  "name": "@lunawar/shared",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "echo \"build\"",
+    "test": "echo \"test\""
+  }
+}

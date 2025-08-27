@@ -1,0 +1,10 @@
+{
+  "name": "@lunawar/admin",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"dev\"",
+    "build": "echo \"build\"",
+    "test": "echo \"test\""
+  }
+}
