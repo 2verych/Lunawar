@@ -4,6 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "echo \"build\"",
-    "test": "echo \"test\""
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
   }
 }
