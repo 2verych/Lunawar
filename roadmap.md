@@ -5,7 +5,7 @@
 - [ ] Структура монорепозитория: apps/, packages/, infra/ и .env.example
 - [SKIP] Docker Compose инфраструктура и Makefile
 - [DONE] Общие сущности и схема ключей Redis в packages/shared
-- [ ] Каркас сервера на Node.js + Express, Redis и /health
+- [DONE] Каркас сервера на Node.js + Express, Redis и /health
 - [ ] Авторизация через Google OAuth и управление сессиями
 - [ ] WebSocket API
 - [ ] Лобби и комнаты: очередь, автоматическое/ручное создание, хранение в Redis
