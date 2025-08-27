@@ -7,7 +7,7 @@
 - [DONE] Общие сущности и схема ключей Redis в packages/shared
 - [DONE] Каркас сервера на Node.js + Express, Redis и /health
 - [DONE] Авторизация через Google OAuth и управление сессиями
-- [ ] WebSocket API
+- [DONE] WebSocket API
 - [ ] Лобби и комнаты: очередь, автоматическое/ручное создание, хранение в Redis
 - [ ] Чат: отправка сообщений, mini/full UI
 - [ ] Админка на React: lobby, rooms, config
