@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import redis from './redis.js';
 import { errorHandler } from './errorHandler.js';
 import { requireSession } from './session.js';
+import { setupWebSocket } from './ws.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +76,8 @@ app.get('/me', requireSession, (req: Request, res: Response) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+setupWebSocket(app, server);

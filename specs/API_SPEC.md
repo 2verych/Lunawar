@@ -229,6 +229,19 @@
 }
 ```
 
+### Каналы
+- `user`
+- `room`
+- `lobby`
+- `admin`
+
+### Типы событий
+- `user.connected`
+- `user.disconnected`
+- `room.user.joined`
+- `room.user.left`
+- `chat.message`
+
 ---
 
 ## Админ API
