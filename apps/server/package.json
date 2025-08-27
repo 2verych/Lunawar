@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node-esm src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "dotenv": "^17.2.1",
@@ -17,6 +18,8 @@
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
     "@types/ws": "^8.18.1",
+    "supertest": "^6.3.4",
+    "vitest": "^1.6.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"

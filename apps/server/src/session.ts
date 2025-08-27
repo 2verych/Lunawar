@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import redis from './redis.js';
 
-function parseCookies(req: Request): Record<string, string> {
+export function parseCookies(req: Request): Record<string, string> {
   const header = req.headers.cookie;
   const cookies: Record<string, string> = {};
   if (!header) return cookies;
