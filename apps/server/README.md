@@ -1,6 +1,6 @@
 # Серверное приложение
 
-Простой сервер Express с подключением к Redis.
+Сервер Express с авторизацией через Google OAuth и хранением состояния в Redis.
 
 ## Скрипты
 
@@ -20,4 +20,11 @@ cp .env.example .env
 
 Задайте `PORT` и `REDIS_URL` в соответствии с вашим окружением.
 
+Для OAuth необходимы переменные `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` и `GOOGLE_REDIRECT_URI`.
+
 Эндпоинт `GET /health` проверяет подключение к Redis и возвращает `{ "status": "ok" }` при успехе.
+
+## Аутентификация
+
+- `POST /auth/google` — принимает `id_token`, проверяет его через Google API, создаёт сессию и устанавливает httpOnly cookie.
+- `GET /me` — возвращает текущего пользователя по валидной cookie.
