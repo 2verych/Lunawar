@@ -98,8 +98,13 @@ function GoogleAuth({ onCredential }: { onCredential: (cred: string) => void }) 
     script.async = true;
     script.onload = () => {
       // @ts-ignore google is provided by the script above
+      const clientId = import.meta.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        console.error('Missing GOOGLE_CLIENT_ID env var');
+        return;
+      }
       window.google.accounts.id.initialize({
-        client_id: '',
+        client_id: clientId,
         callback: (resp: CredentialResponse) => onCredential(resp.credential)
       });
       // @ts-ignore

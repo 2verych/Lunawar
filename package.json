@@ -11,7 +11,8 @@
     "dev:server": "npm run dev:docker",
     "dev": "npm-run-all --parallel dev:web dev:server",
     "build": "npm run build --workspaces",
-    "setup": "npm install && npm run build"
+    "setup": "npm install",
+    "start": "npm run setup && npm run build && npm run dev"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"
