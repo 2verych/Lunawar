@@ -1,11 +1,17 @@
 export interface User {
-  id: string;
+  uid: string;
   name: string;
 }
 
 export interface RoomMeta {
   id: string;
-  name: string;
+  size: number;
+  createdAt: number;
+  ttlSec: number;
+}
+
+export interface RoomInfo {
+  meta: RoomMeta;
   users: User[];
 }
 
@@ -17,7 +23,12 @@ export interface Message {
   timestamp: number;
 }
 
+export interface LobbyConfig {
+  roomSize: number;
+  autoMatch: boolean;
+}
+
 export interface LobbySnapshot {
   users: User[];
-  rooms: RoomMeta[];
+  config: LobbyConfig;
 }
