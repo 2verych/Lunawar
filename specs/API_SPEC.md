@@ -241,6 +241,8 @@
 - `room.user.joined`
 - `room.user.left`
 - `chat.message`
+- `lobby.joined`
+- `room.created`
 
 ---
 
@@ -255,7 +257,10 @@
 ```
 - `POST /admin/room.create`
 ```json
-{ "size": 4 }
+{ "uids": ["a@a.com", "b@b.com"] }
+```
+```json
+{ "roomId": "room_uuid" }
 ```
 - `POST /admin/config.set`
 ```json
