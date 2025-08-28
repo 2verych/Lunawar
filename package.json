@@ -5,6 +5,15 @@
   "type": "module",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "test": "echo \"No tests\""
+    "test": "npm test --workspaces --if-present",
+    "dev:docker": "bash scripts/dev-with-redis.sh",
+    "dev:web": "npm run dev -w @lunawar/web",
+    "dev:server": "npm run dev:docker",
+    "dev": "npm-run-all --parallel dev:web dev:server",
+    "build": "npm run build --workspaces",
+    "setup": "npm install && npm run build"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
   }
 }
