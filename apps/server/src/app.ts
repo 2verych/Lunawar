@@ -3,6 +3,21 @@ import { randomUUID } from 'crypto';
 import redis from './redis.js';
 import { errorHandler } from './errorHandler.js';
 import { requireSession } from './session.js';
+import {
+  joinLobby,
+  leaveLobby,
+  getLobbySnapshot,
+} from './lobby.js';
+import {
+  createRoom,
+  getRooms,
+  getRoom,
+  leaveRoom,
+} from './rooms.js';
+import {
+  LOBBY_QUEUE,
+  CONFIG_ROOM_SIZE,
+} from '@lunawar/shared/src/redisKeys.js';
 
 export function createApp() {
   const app = express();
@@ -69,6 +84,91 @@ export function createApp() {
 
   app.get('/me', requireSession, (req: Request, res: Response) => {
     res.json({ user: req.user });
+  });
+
+  app.get('/lobby', requireSession, async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const snapshot = await getLobbySnapshot();
+      res.json({ snapshot });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/lobby/join', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await joinLobby(req.user.uid);
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/lobby/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await leaveLobby(req.user.uid);
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get('/rooms', requireSession, async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rooms = await getRooms();
+      res.json({ rooms });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get('/rooms/:roomId', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const room = await getRoom(req.params.roomId);
+      if (!room) {
+        return res
+          .status(404)
+          .json({ error: { code: 'NOT_FOUND', message: 'Room not found' }, requestId: req.requestId });
+      }
+      res.json(room);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/rooms/:roomId/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await leaveRoom(req.params.roomId, req.user.uid);
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/admin/room.create', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let users: string[] = req.body?.uids;
+      if (!Array.isArray(users) || users.length === 0) {
+        const roomSize = parseInt((await redis.get(CONFIG_ROOM_SIZE)) || '0');
+        users = await redis.lrange(LOBBY_QUEUE, 0, roomSize - 1);
+        if (users.length) {
+          await redis.ltrim(LOBBY_QUEUE, users.length, -1);
+        }
+      } else {
+        for (const uid of users) {
+          await redis.lrem(LOBBY_QUEUE, 0, uid);
+        }
+      }
+      if (users.length === 0) {
+        return res
+          .status(400)
+          .json({ error: { code: 'BAD_REQUEST', message: 'No users for room' }, requestId: req.requestId });
+      }
+      const roomId = await createRoom(users);
+      res.json({ roomId });
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.use(errorHandler);
