@@ -97,7 +97,7 @@ export function createApp() {
 
   app.post('/lobby/join', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await joinLobby(req.user.uid);
+      await joinLobby(req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
@@ -106,7 +106,7 @@ export function createApp() {
 
   app.post('/lobby/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await leaveLobby(req.user.uid);
+      await leaveLobby(req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
@@ -138,7 +138,7 @@ export function createApp() {
 
   app.post('/rooms/:roomId/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await leaveRoom(req.params.roomId, req.user.uid);
+      await leaveRoom(req.params.roomId, req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
