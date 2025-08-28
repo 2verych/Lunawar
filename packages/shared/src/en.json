@@ -1,4 +1,9 @@
 {
   "welcome": "Welcome",
-  "goodbye": "Goodbye"
+  "goodbye": "Goodbye",
+  "ui.lobby": "Lobby",
+  "ui.joinLobby": "Join Lobby",
+  "ui.leaveLobby": "Leave Lobby",
+  "ui.rooms": "Rooms",
+  "ui.lobbyUsers": "Lobby Users"
 }
