@@ -40,18 +40,22 @@ export function createApp() {
   app.post('/auth/google', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id_token: idToken } = req.body || {};
+      console.log('[auth/google] received id_token', idToken);
+      console.log('[auth/google] expected GOOGLE_CLIENT_ID', process.env.GOOGLE_CLIENT_ID);
       if (!idToken) {
         return res
           .status(400)
           .json({ error: { code: 'BAD_REQUEST', message: 'id_token required' }, requestId: req.requestId });
       }
       const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+      console.log('[auth/google] tokeninfo response status', response.status);
       if (!response.ok) {
         return res
           .status(401)
           .json({ error: { code: 'INVALID_TOKEN', message: 'Unable to verify token' }, requestId: req.requestId });
       }
       const tokenInfo = await response.json();
+      console.log('[auth/google] tokenInfo', tokenInfo);
       if (tokenInfo.aud !== process.env.GOOGLE_CLIENT_ID) {
         return res
           .status(401)
