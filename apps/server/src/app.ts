@@ -27,6 +27,13 @@ export function createApp() {
     req.requestId = randomUUID();
     next();
   });
+  app.use((req, res, next) => {
+    console.log(`[${req.requestId}] ${req.method} ${req.originalUrl}`);
+    res.on('finish', () => {
+      console.log(`[${req.requestId}] ${res.statusCode}`);
+    });
+    next();
+  });
 
   app.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
     try {
@@ -77,6 +84,27 @@ export function createApp() {
 
       res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
       res.json({ user: { uid: email, name } });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/auth/logout', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const uid = req.user.uid;
+      const sessionId = await redis.get(`user:${uid}:session`);
+      if (sessionId) {
+        await redis.del(`session:${sessionId}`);
+        await redis.del(`user:${uid}:session`);
+      }
+      await redis.lrem(LOBBY_QUEUE, 0, uid);
+      const roomKeys = await redis.keys('room:*:users');
+      for (const key of roomKeys) {
+        await redis.srem(key, uid);
+        await redis.lrem(key, 0, uid);
+      }
+      res.clearCookie('sessionId');
+      res.json({ ok: true });
     } catch (err) {
       next(err);
     }
