@@ -47,7 +47,8 @@ export default function App() {
       body: JSON.stringify({ id_token: cred })
     });
     if (res.ok) {
-      setUser(await res.json());
+      const d = await res.json();
+      setUser(d.user);
     }
   }
 
@@ -57,14 +58,29 @@ export default function App() {
 
   async function joinLobby() {
     await fetch('/lobby/join', { method: 'POST' });
+    const d = await fetch('/lobby').then(r => r.json());
+    setLobby(d.snapshot);
   }
   async function leaveLobby() {
     await fetch('/lobby/leave', { method: 'POST' });
+    const d = await fetch('/lobby').then(r => r.json());
+    setLobby(d.snapshot);
+  }
+
+  async function logout() {
+    await fetch('/auth/logout', { method: 'POST' });
+    setUser(null);
+    setLobby(null);
+    setRooms([]);
   }
 
   return (
     <div>
       <h1>{l('ui.lobby', 'Lobby')}</h1>
+      <p>
+        {l('ui.loggedInAs', 'Logged in as')}: {user.name}
+        <button onClick={logout}>{l('ui.logout', 'Logout')}</button>
+      </p>
       <button onClick={joinLobby}>{l('ui.joinLobby', 'Join Lobby')}</button>
       <button onClick={leaveLobby}>{l('ui.leaveLobby', 'Leave Lobby')}</button>
       {lobby && (

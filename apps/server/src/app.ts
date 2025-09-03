@@ -27,6 +27,13 @@ export function createApp() {
     req.requestId = randomUUID();
     next();
   });
+  app.use((req, res, next) => {
+    console.log(`[${req.requestId}] ${req.method} ${req.originalUrl}`);
+    res.on('finish', () => {
+      console.log(`[${req.requestId}] ${res.statusCode}`);
+    });
+    next();
+  });
 
   app.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
     try {
@@ -82,6 +89,27 @@ export function createApp() {
     }
   });
 
+  app.post('/auth/logout', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const uid = req.user!.uid;
+      const sessionId = await redis.get(`user:${uid}:session`);
+      if (sessionId) {
+        await redis.del(`session:${sessionId}`);
+        await redis.del(`user:${uid}:session`);
+      }
+      await redis.lrem(LOBBY_QUEUE, 0, uid);
+      const roomKeys = await redis.keys('room:*:users');
+      for (const key of roomKeys) {
+        await redis.srem(key, uid);
+        await redis.lrem(key, 0, uid);
+      }
+      res.clearCookie('sessionId');
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.get('/me', requireSession, (req: Request, res: Response) => {
     res.json({ user: req.user });
   });
@@ -97,7 +125,7 @@ export function createApp() {
 
   app.post('/lobby/join', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await joinLobby(req.user.uid);
+      await joinLobby(req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
@@ -106,7 +134,7 @@ export function createApp() {
 
   app.post('/lobby/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await leaveLobby(req.user.uid);
+      await leaveLobby(req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
@@ -138,7 +166,7 @@ export function createApp() {
 
   app.post('/rooms/:roomId/leave', requireSession, async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await leaveRoom(req.params.roomId, req.user.uid);
+      await leaveRoom(req.params.roomId, req.user!.uid);
       res.json({ ok: true });
     } catch (err) {
       next(err);
