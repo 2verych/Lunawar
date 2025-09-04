@@ -12,6 +12,7 @@ import {
 import type { LobbySnapshot, RoomInfo, User, Message } from '@lunawar/shared/src/types';
 import { l } from '@lunawar/shared/src/i18n';
 import { CONFIG_ROOM_SIZE, CONFIG_AUTO_MATCH } from '@lunawar/shared/src/redisKeys';
+import './App.css';
 
 interface CredentialResponse { credential: string }
 
@@ -20,7 +21,6 @@ export default function App() {
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [lobby, setLobby] = useState<LobbySnapshot | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  const [inputs, setInputs] = useState<Record<string, string>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -112,15 +112,13 @@ export default function App() {
     setRooms(d.rooms);
   }
 
-  async function sendChat(roomId: string) {
-    const text = inputs[roomId];
+  async function sendChat(roomId: string, text: string) {
     if (!text) return;
     await fetch(`/rooms/${roomId}/chat.send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messageId: crypto.randomUUID(), text }),
     });
-    setInputs(prev => ({ ...prev, [roomId]: '' }));
   }
 
   async function logout() {
@@ -130,8 +128,20 @@ export default function App() {
     setRooms([]);
   }
 
+  const currentRoom = rooms.find(r => r.users.some(u => u.uid === user.uid));
+  if (currentRoom) {
+    return (
+      <RoomView
+        room={currentRoom}
+        messages={messages[currentRoom.meta.id] || []}
+        onLeave={() => leaveRoom(currentRoom.meta.id)}
+        onSend={text => sendChat(currentRoom.meta.id, text)}
+      />
+    );
+  }
+
   return (
-    <div>
+    <div className="lobby">
       <h1>{l('ui.lobby', 'Lobby')}</h1>
       <p>
         {l('ui.loggedInAs', 'Logged in as')}: {user.name}
@@ -157,24 +167,58 @@ export default function App() {
         {rooms.map(r => (
           <li key={r.meta.id}>
             {r.meta.id} ({r.users.length}/{r.meta.size})
-            {r.users.some(u => u.uid === user.uid) && (
-              <div>
-                <button onClick={() => leaveRoom(r.meta.id)}>{l('ui.leaveRoom', 'Leave Room')}</button>
-                <ul>
-                  {(messages[r.meta.id] || []).map(m => (
-                    <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
-                  ))}
-                </ul>
-                <input
-                  value={inputs[r.meta.id] || ''}
-                  onChange={e => setInputs(prev => ({ ...prev, [r.meta.id]: e.target.value }))}
-                />
-                <button onClick={() => sendChat(r.meta.id)}>{l('ui.send', 'Send')}</button>
-              </div>
-            )}
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function RoomView({
+  room,
+  messages,
+  onLeave,
+  onSend,
+}: {
+  room: RoomInfo;
+  messages: Message[];
+  onLeave: () => void;
+  onSend: (text: string) => void;
+}) {
+  const [showFull, setShowFull] = useState(false);
+  const [input, setInput] = useState('');
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '`') {
+        setShowFull(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+  const msgs = showFull ? messages : messages.slice(-3);
+  return (
+    <div className="room">
+      <button className="exit" onClick={onLeave}>{l('ui.leaveRoom', 'Leave Room')}</button>
+      <div className={`chat ${showFull ? 'full' : 'mini'}`}>
+        <ul className="messages">
+          {msgs.map(m => (
+            <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
+          ))}
+        </ul>
+        {showFull && (
+          <div className="input">
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { onSend(input); setInput(''); }
+              }}
+            />
+            <button onClick={() => { onSend(input); setInput(''); }}>{l('ui.send', 'Send')}</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
