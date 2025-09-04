@@ -15,7 +15,7 @@ function mockPublish() {
   const events: any[] = [];
   vi.spyOn(ws, 'publish').mockImplementation(async (_ch: string, _type: string, payload: any) => {
     events.push(payload);
-    return undefined;
+    return { eventId: 0, epoch: 0, ts: Date.now(), type: _type, payload };
   });
   return events;
 }
