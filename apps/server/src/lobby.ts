@@ -19,14 +19,23 @@ async function fetchUser(uid: string) {
   return JSON.parse(sessionData);
 }
 
+export async function getConfig() {
+  const roomSizeRaw = await redis.get(CONFIG_ROOM_SIZE);
+  const autoMatchRaw = await redis.get(CONFIG_AUTO_MATCH);
+  const defaultRoomSize = process.env.CONFIG_ROOM_SIZE_DEFAULT || '0';
+  const defaultAutoMatch = process.env.CONFIG_AUTO_MATCH_DEFAULT === 'true';
+  const roomSize = parseInt(roomSizeRaw ?? defaultRoomSize);
+  const autoMatch = autoMatchRaw === null ? defaultAutoMatch : autoMatchRaw === 'true';
+  return { roomSize, autoMatch };
+}
+
 export async function getLobbySnapshot() {
   const uids = await redis.lrange(LOBBY_QUEUE, 0, -1);
   const users = [];
   for (const uid of uids) {
     users.push(await fetchUser(uid));
   }
-  const roomSize = parseInt((await redis.get(CONFIG_ROOM_SIZE)) || '0');
-  const autoMatch = (await redis.get(CONFIG_AUTO_MATCH)) === 'true';
+  const { roomSize, autoMatch } = await getConfig();
   return { users, config: { roomSize, autoMatch } };
 }
 
@@ -34,8 +43,7 @@ export async function joinLobby(uid: string) {
   await redis.lrem(LOBBY_QUEUE, 0, uid);
   await redis.rpush(LOBBY_QUEUE, uid);
 
-  const autoMatch = (await redis.get(CONFIG_AUTO_MATCH)) === 'true';
-  const roomSize = parseInt((await redis.get(CONFIG_ROOM_SIZE)) || '0');
+  const { autoMatch, roomSize } = await getConfig();
   if (autoMatch && roomSize > 0) {
     const len = await redis.llen(LOBBY_QUEUE);
     if (len >= roomSize) {
