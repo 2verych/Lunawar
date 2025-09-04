@@ -7,6 +7,7 @@ import {
   joinLobby,
   leaveLobby,
   getLobbySnapshot,
+  getConfig,
 } from './lobby.js';
 import {
   createRoom,
@@ -16,7 +17,6 @@ import {
 } from './rooms.js';
 import {
   LOBBY_QUEUE,
-  CONFIG_ROOM_SIZE,
 } from '@lunawar/shared/src/redisKeys.js';
 
 export function createApp() {
@@ -181,7 +181,7 @@ export function createApp() {
     try {
       let users: string[] = req.body?.uids;
       if (!Array.isArray(users) || users.length === 0) {
-        const roomSize = parseInt((await redis.get(CONFIG_ROOM_SIZE)) || '0');
+        const { roomSize } = await getConfig();
         users = await redis.lrange(LOBBY_QUEUE, 0, roomSize - 1);
         if (users.length) {
           await redis.ltrim(LOBBY_QUEUE, users.length, -1);

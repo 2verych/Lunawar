@@ -46,6 +46,19 @@ test('auto room creation from lobby', async () => {
   assert.deepStrictEqual(q, []);
 });
 
+test('env defaults used for lobby config', async () => {
+  await redis.flushall();
+  mockPublish();
+  process.env.CONFIG_AUTO_MATCH_DEFAULT = 'true';
+  process.env.CONFIG_ROOM_SIZE_DEFAULT = '2';
+  await joinLobby('a');
+  await joinLobby('b');
+  const rooms = await getRooms();
+  assert.strictEqual(rooms.length, 1);
+  delete process.env.CONFIG_AUTO_MATCH_DEFAULT;
+  delete process.env.CONFIG_ROOM_SIZE_DEFAULT;
+});
+
 test('manual room creation', async () => {
   await redis.flushall();
   mockPublish();
