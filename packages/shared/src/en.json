@@ -4,6 +4,7 @@
   "ui.lobby": "Lobby",
   "ui.joinLobby": "Join Lobby",
   "ui.leaveLobby": "Leave Lobby",
+  "ui.leaveRoom": "Leave Room",
   "ui.rooms": "Rooms",
   "ui.lobbyUsers": "Lobby Users",
   "ui.loggedInAs": "Logged in as",

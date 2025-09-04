@@ -15,9 +15,6 @@ import {
   getRoom,
   leaveRoom,
 } from './rooms.js';
-import {
-  LOBBY_QUEUE,
-} from '@lunawar/shared/src/redisKeys.js';
 
 export function createApp() {
   const app = express();
@@ -109,12 +106,17 @@ export function createApp() {
         await redis.del(`session:${sessionId}`);
         await redis.del(`user:${uid}:session`);
       }
-      await redis.lrem(LOBBY_QUEUE, 0, uid);
+
+      await leaveLobby(uid);
       const roomKeys = await redis.keys('room:*:users');
       for (const key of roomKeys) {
-        await redis.srem(key, uid);
-        await redis.lrem(key, 0, uid);
+        const isMember = await redis.sismember(key, uid);
+        if (isMember) {
+          const id = key.split(':')[1];
+          await leaveRoom(id, uid);
+        }
       }
+
       res.clearCookie('sessionId');
       res.json({ ok: true });
     } catch (err) {

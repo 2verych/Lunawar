@@ -84,6 +84,12 @@ export default function App() {
     setLobby(d.snapshot);
   }
 
+  async function leaveRoom(roomId: string) {
+    await fetch(`/rooms/${roomId}/leave`, { method: 'POST' });
+    const d = await fetch('/rooms').then(r => r.json());
+    setRooms(d.rooms);
+  }
+
   async function logout() {
     await fetch('/auth/logout', { method: 'POST' });
     setUser(null);
@@ -116,7 +122,12 @@ export default function App() {
       <h2>{l('ui.rooms', 'Rooms')}</h2>
       <ul>
         {rooms.map(r => (
-          <li key={r.meta.id}>{r.meta.id} ({r.users.length}/{r.meta.size})</li>
+          <li key={r.meta.id}>
+            {r.meta.id} ({r.users.length}/{r.meta.size})
+            {r.users.some(u => u.uid === user.uid) && (
+              <button onClick={() => leaveRoom(r.meta.id)}>{l('ui.leaveRoom', 'Leave Room')}</button>
+            )}
+          </li>
         ))}
       </ul>
     </div>
