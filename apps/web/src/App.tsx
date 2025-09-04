@@ -142,15 +142,19 @@ export default function App() {
 
   return (
     <div className="lobby">
-      <h1>{l('ui.lobby', 'Lobby')}</h1>
-      <p>
-        {l('ui.loggedInAs', 'Logged in as')}: {user.name}
-        <button onClick={logout}>{l('ui.logout', 'Logout')}</button>
-      </p>
-      <button onClick={joinLobby}>{l('ui.joinLobby', 'Join Lobby')}</button>
-      <button onClick={leaveLobby}>{l('ui.leaveLobby', 'Leave Lobby')}</button>
+      <header className="lobby-header">
+        <h1>{l('ui.lobby', 'Lobby')}</h1>
+        <div className="user-info">
+          {l('ui.loggedInAs', 'Logged in as')}: {user.name}
+          <button onClick={logout}>{l('ui.logout', 'Logout')}</button>
+        </div>
+      </header>
+      <div className="lobby-actions">
+        <button onClick={joinLobby}>{l('ui.joinLobby', 'Join Lobby')}</button>
+        <button onClick={leaveLobby}>{l('ui.leaveLobby', 'Leave Lobby')}</button>
+      </div>
       {lobby && (
-        <div>
+        <section className="lobby-users">
           <h2>{l('ui.lobbyUsers', 'Lobby Users')}</h2>
           <ul>
             {lobby.users.map(u => (
@@ -160,16 +164,18 @@ export default function App() {
           <p>
             {CONFIG_ROOM_SIZE}: {lobby.config.roomSize} / {CONFIG_AUTO_MATCH}: {String(lobby.config.autoMatch)}
           </p>
-        </div>
+        </section>
       )}
-      <h2>{l('ui.rooms', 'Rooms')}</h2>
-      <ul>
-        {rooms.map(r => (
-          <li key={r.meta.id}>
-            {r.meta.id} ({r.users.length}/{r.meta.size})
-          </li>
-        ))}
-      </ul>
+      <section className="rooms">
+        <h2>{l('ui.rooms', 'Rooms')}</h2>
+        <ul>
+          {rooms.map(r => (
+            <li key={r.meta.id}>
+              {r.meta.id} ({r.users.length}/{r.meta.size})
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -185,7 +191,7 @@ function RoomView({
   onLeave: () => void;
   onSend: (text: string) => void;
 }) {
-  const [showFull, setShowFull] = useState(false);
+  const [showFull, setShowFull] = useState(true);
   const [input, setInput] = useState('');
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -202,9 +208,13 @@ function RoomView({
       <button className="exit" onClick={onLeave}>{l('ui.leaveRoom', 'Leave Room')}</button>
       <div className={`chat ${showFull ? 'full' : 'mini'}`}>
         <ul className="messages">
-          {msgs.map(m => (
-            <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
-          ))}
+          {msgs.length === 0 ? (
+            <li className="placeholder">{l('ui.noMessages', 'No messages yet')}</li>
+          ) : (
+            msgs.map(m => (
+              <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
+            ))
+          )}
         </ul>
         {showFull && (
           <div className="input">
@@ -216,7 +226,11 @@ function RoomView({
               }}
             />
             <button onClick={() => { onSend(input); setInput(''); }}>{l('ui.send', 'Send')}</button>
+            <button className="toggle" onClick={() => setShowFull(false)}>{l('ui.closeChat', 'Hide')}</button>
           </div>
+        )}
+        {!showFull && (
+          <button className="toggle" onClick={() => setShowFull(true)}>{l('ui.openChat', 'Chat')}</button>
         )}
       </div>
     </div>
