@@ -15,6 +15,7 @@ import {
   getRooms,
   getRoom,
   leaveRoom,
+  sendMessage,
 } from './rooms.js';
 
 export function createApp() {
@@ -183,6 +184,28 @@ export function createApp() {
     try {
       await leaveRoom(req.params.roomId, req.user!.uid);
       res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/rooms/:roomId/chat.send', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { messageId, text } = req.body || {};
+      if (
+        typeof messageId !== 'string' ||
+        messageId.length === 0 ||
+        messageId.length > 64 ||
+        typeof text !== 'string' ||
+        text.length === 0 ||
+        text.length > 500
+      ) {
+        return res
+          .status(400)
+          .json({ error: { code: 'BAD_REQUEST', message: 'Invalid message' }, requestId: req.requestId });
+      }
+      await sendMessage(req.params.roomId, req.user!, messageId, text);
+      res.json({ accepted: true });
     } catch (err) {
       next(err);
     }
