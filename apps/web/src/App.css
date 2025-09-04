@@ -1,7 +1,39 @@
+:root {
+  --dark-blue: #1A2238;
+  --deep-blue: #263859;
+  --moon-gray: #B4B8C5;
+  --light-gray: #EAEAEA;
+  --shadow-blue: #5A6782;
+  --star-yellow: #FFF3B0;
+  --accent-purple: #6C63FF;
+}
+
+body {
+  margin: 0;
+  background: var(--dark-blue);
+  color: var(--light-gray);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+button {
+  background: var(--accent-purple);
+  color: var(--light-gray);
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background: var(--star-yellow);
+  color: var(--dark-blue);
+}
+
 .room {
   position: relative;
-  background: #000;
-  color: #fff;
+  background: var(--deep-blue);
+  color: var(--light-gray);
   height: 100vh;
   overflow: hidden;
 }
@@ -10,7 +42,6 @@
   position: absolute;
   top: 10px;
   left: 10px;
-  padding: 6px 10px;
 }
 
 .chat {
@@ -18,10 +49,10 @@
   top: 0;
   right: 0;
   width: 300px;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(38, 56, 89, 0.9);
   padding: 10px;
   box-sizing: border-box;
-  color: #fff;
+  color: var(--light-gray);
 }
 
 .chat.mini .messages {
@@ -41,7 +72,7 @@
 }
 
 .chat .placeholder {
-  color: #aaa;
+  color: var(--moon-gray);
   font-style: italic;
 }
 
@@ -66,27 +97,40 @@
 
 .input input {
   flex: 1;
+  padding: 4px;
+  border: 1px solid var(--moon-gray);
+  border-radius: 4px;
+  background: var(--light-gray);
+  color: var(--dark-blue);
 }
 
 .lobby {
   padding: 20px;
   max-width: 600px;
   margin: 40px auto;
-  background: #f5f5f5;
+  background: var(--light-gray);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-family: sans-serif;
+  box-shadow: 0 2px 8px rgba(90, 103, 130, 0.4);
+  color: var(--dark-blue);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .lobby-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  background: var(--deep-blue);
+  color: var(--star-yellow);
+  padding: 10px 20px;
+  border-radius: 8px;
 }
 
 .lobby-actions {
-  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }
 
 .lobby ul {
