@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import redis from './redis.js';
+import { LOBBY_QUEUE } from '@lunawar/shared/src/redisKeys.js';
 import { errorHandler } from './errorHandler.js';
 import { requireSession } from './session.js';
 import {
