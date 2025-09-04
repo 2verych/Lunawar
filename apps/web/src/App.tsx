@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  CHANNEL_LOBBY,
+  CHANNEL_ROOM,
+  CHANNEL_USER,
   LOBBY_JOINED,
   ROOM_CREATED,
   ROOM_USER_JOINED,
@@ -24,6 +27,9 @@ export default function App() {
 
     const ws = new WebSocket(`${location.origin.replace(/^http/, 'ws')}/ws`);
     wsRef.current = ws;
+    ws.addEventListener('open', () => {
+      ws.send(JSON.stringify({ channels: [CHANNEL_USER, CHANNEL_ROOM, CHANNEL_LOBBY] }));
+    });
     ws.addEventListener('message', ev => {
       const { type, payload } = JSON.parse(ev.data);
       switch (type) {
