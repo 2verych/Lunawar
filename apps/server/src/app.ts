@@ -22,6 +22,9 @@ import {
 export function createApp() {
   const app = express();
 
+  const sessionTtlMs = Number(process.env.SESSION_TTL) || 7 * 24 * 60 * 60 * 1000;
+  const sessionTtlSec = Math.floor(sessionTtlMs / 1000);
+
   app.use(express.json());
   app.use((req, _res, next) => {
     req.requestId = randomUUID();
@@ -83,10 +86,15 @@ export function createApp() {
         }
       }
 
-      await redis.set(`user:${email}:session`, sessionId);
-      await redis.set(`session:${sessionId}`, JSON.stringify({ uid: email, name }));
+      await redis.set(`user:${email}:session`, sessionId, 'EX', sessionTtlSec);
+      await redis.set(`session:${sessionId}`, JSON.stringify({ uid: email, name }), 'EX', sessionTtlSec);
 
-      res.cookie('sessionId', sessionId, { httpOnly: true, sameSite: 'lax' });
+      res.cookie('sessionId', sessionId, {
+        maxAge: sessionTtlMs,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+      });
       res.json({ user: { uid: email, name } });
     } catch (err) {
       next(err);
