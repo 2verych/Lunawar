@@ -21,6 +21,17 @@ export default function App() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    fetch('/me').then(async (r) => {
+      if (r.status === 200) {
+        const d = await r.json();
+        setUser(d.user);
+      } else if (r.status === 401) {
+        // user remains null
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     fetch('/lobby').then(r => r.json()).then((d) => setLobby(d.snapshot));
     fetch('/rooms').then(r => r.json()).then((d) => setRooms(d.rooms));
