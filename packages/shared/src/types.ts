@@ -16,11 +16,12 @@ export interface RoomInfo {
 }
 
 export interface Message {
-  id: string;
+  messageId: string;
+  eventId: number;
+  ts: number;
   roomId: string;
-  userId: string;
-  content: string;
-  timestamp: number;
+  from: User;
+  text: string;
 }
 
 export interface LobbyConfig {

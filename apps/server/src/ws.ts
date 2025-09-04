@@ -133,5 +133,6 @@ export async function publish(channel: string, type: string, payload: any) {
       client.send(JSON.stringify(event));
     }
   }
+  return event;
 }
 

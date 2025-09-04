@@ -6,9 +6,10 @@ import {
   LOBBY_JOINED,
   ROOM_CREATED,
   ROOM_USER_JOINED,
-  ROOM_USER_LEFT
+  ROOM_USER_LEFT,
+  CHAT_MESSAGE,
 } from '@lunawar/shared/src/events';
-import type { LobbySnapshot, RoomInfo, User } from '@lunawar/shared/src/types';
+import type { LobbySnapshot, RoomInfo, User, Message } from '@lunawar/shared/src/types';
 import { l } from '@lunawar/shared/src/i18n';
 import { CONFIG_ROOM_SIZE, CONFIG_AUTO_MATCH } from '@lunawar/shared/src/redisKeys';
 
@@ -18,6 +19,8 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const [lobby, setLobby] = useState<LobbySnapshot | null>(null);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [inputs, setInputs] = useState<Record<string, string>>({});
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -34,7 +37,17 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     fetch('/lobby').then(r => r.json()).then((d) => setLobby(d.snapshot));
-    fetch('/rooms').then(r => r.json()).then((d) => setRooms(d.rooms));
+    fetch('/rooms').then(r => r.json()).then(async (d) => {
+      setRooms(d.rooms);
+      const msgs: Record<string, Message[]> = {};
+      for (const r of d.rooms) {
+        if (r.users.some((u: User) => u.uid === user.uid)) {
+          const roomData = await fetch(`/rooms/${r.meta.id}`).then(res => res.json());
+          msgs[r.meta.id] = roomData.lastMessages || [];
+        }
+      }
+      setMessages(msgs);
+    });
 
     const ws = new WebSocket(`${location.origin.replace(/^http/, 'ws')}/ws`);
     wsRef.current = ws;
@@ -51,6 +64,15 @@ export default function App() {
           break;
         case LOBBY_JOINED:
           setLobby(payload.snapshot);
+          break;
+        case CHAT_MESSAGE:
+          setMessages(prev => {
+            const msg: Message = payload.message;
+            return {
+              ...prev,
+              [msg.roomId]: [...(prev[msg.roomId] || []), msg],
+            };
+          });
           break;
       }
     });
@@ -90,6 +112,17 @@ export default function App() {
     setRooms(d.rooms);
   }
 
+  async function sendChat(roomId: string) {
+    const text = inputs[roomId];
+    if (!text) return;
+    await fetch(`/rooms/${roomId}/chat.send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messageId: crypto.randomUUID(), text }),
+    });
+    setInputs(prev => ({ ...prev, [roomId]: '' }));
+  }
+
   async function logout() {
     await fetch('/auth/logout', { method: 'POST' });
     setUser(null);
@@ -125,7 +158,19 @@ export default function App() {
           <li key={r.meta.id}>
             {r.meta.id} ({r.users.length}/{r.meta.size})
             {r.users.some(u => u.uid === user.uid) && (
-              <button onClick={() => leaveRoom(r.meta.id)}>{l('ui.leaveRoom', 'Leave Room')}</button>
+              <div>
+                <button onClick={() => leaveRoom(r.meta.id)}>{l('ui.leaveRoom', 'Leave Room')}</button>
+                <ul>
+                  {(messages[r.meta.id] || []).map(m => (
+                    <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
+                  ))}
+                </ul>
+                <input
+                  value={inputs[r.meta.id] || ''}
+                  onChange={e => setInputs(prev => ({ ...prev, [r.meta.id]: e.target.value }))}
+                />
+                <button onClick={() => sendChat(r.meta.id)}>{l('ui.send', 'Send')}</button>
+              </div>
             )}
           </li>
         ))}

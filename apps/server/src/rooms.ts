@@ -11,6 +11,7 @@ import {
   ROOM_CREATED,
   ROOM_USER_JOINED,
   ROOM_USER_LEFT,
+  CHAT_MESSAGE,
 } from '@lunawar/shared/src/events.js';
 import { publish } from './ws.js';
 
@@ -96,4 +97,29 @@ export async function leaveRoom(id: string, uid: string) {
     await redis.del(roomMetaKey(id));
     await redis.srem(ROOMS_SET, id);
   }
+}
+
+export async function sendMessage(
+  roomId: string,
+  user: { uid: string; name: string },
+  messageId: string,
+  text: string,
+) {
+  const isMember = await redis.sismember(roomUsersKey(roomId), user.uid);
+  if (!isMember) {
+    throw new Error('USER_NOT_IN_ROOM');
+  }
+  const cleaned = text.slice(0, 500);
+  const msg = {
+    messageId,
+    eventId: 0,
+    ts: Date.now(),
+    roomId,
+    from: user,
+    text: cleaned,
+  };
+  const event = await publish(CHANNEL_ROOM, CHAT_MESSAGE, { message: { ...msg } });
+  msg.eventId = event.eventId;
+  await redis.rpush(roomMessagesKey(roomId), JSON.stringify(msg));
+  await redis.ltrim(roomMessagesKey(roomId), -50, -1);
 }
