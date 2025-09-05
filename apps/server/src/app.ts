@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import redis from './redis.js';
-import { LOBBY_QUEUE } from '@lunawar/shared/src/redisKeys.js';
+import { LOBBY_QUEUE, CONFIG_ROOM_SIZE, CONFIG_AUTO_MATCH } from '@lunawar/shared/src/redisKeys.js';
 import { errorHandler } from './errorHandler.js';
-import { requireSession } from './session.js';
+import { requireSession, requireAdmin, isAdmin } from './session.js';
 import {
   joinLobby,
   leaveLobby,
@@ -17,6 +17,8 @@ import {
   leaveRoom,
   sendMessage,
 } from './rooms.js';
+import { CHANNEL_LOBBY, LOBBY_JOINED } from '@lunawar/shared/src/events.js';
+import { publish } from './ws.js';
 
 export function createApp() {
   const app = express();
@@ -71,6 +73,61 @@ export function createApp() {
           .json({ error: { code: 'INVALID_TOKEN', message: 'Invalid audience' }, requestId: req.requestId });
       }
       const email = tokenInfo.email as string;
+      const name = (tokenInfo.name as string) || 'Noname';
+      const sessionId = randomUUID();
+
+      const existingSession = await redis.get(`user:${email}:session`);
+      if (existingSession) {
+        await redis.del(`session:${existingSession}`);
+        await redis.lrem('lobby:queue', 0, email);
+        const roomKeys = await redis.keys('room:*:users');
+        for (const key of roomKeys) {
+          await redis.srem(key, email);
+          await redis.lrem(key, 0, email);
+        }
+      }
+
+      await redis.set(`user:${email}:session`, sessionId, 'EX', sessionTtlSec);
+      await redis.set(`session:${sessionId}`, JSON.stringify({ uid: email, name }), 'EX', sessionTtlSec);
+
+      res.cookie('sessionId', sessionId, {
+        maxAge: sessionTtlMs,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        httpOnly: true,
+      });
+      res.json({ user: { uid: email, name } });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/admin/auth/google', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id_token: idToken } = req.body || {};
+      if (!idToken) {
+        return res
+          .status(400)
+          .json({ error: { code: 'BAD_REQUEST', message: 'id_token required' }, requestId: req.requestId });
+      }
+      const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+      if (!response.ok) {
+        return res
+          .status(401)
+          .json({ error: { code: 'INVALID_TOKEN', message: 'Unable to verify token' }, requestId: req.requestId });
+      }
+      const tokenInfo = await response.json();
+      if (tokenInfo.aud !== process.env.GOOGLE_CLIENT_ID) {
+        return res
+          .status(401)
+          .json({ error: { code: 'INVALID_TOKEN', message: 'Invalid audience' }, requestId: req.requestId });
+      }
+      const email = tokenInfo.email as string;
+      if (!isAdmin(email)) {
+        return res
+          .status(403)
+          .json({ error: { code: 'FORBIDDEN', message: 'Admin only' }, requestId: req.requestId });
+      }
       const name = (tokenInfo.name as string) || 'Noname';
       const sessionId = randomUUID();
 
@@ -211,7 +268,51 @@ export function createApp() {
     }
   });
 
-  app.post('/admin/room.create', requireSession, async (req: Request, res: Response, next: NextFunction) => {
+  app.get('/admin/me', requireSession, requireAdmin, async (req: Request, res: Response) => {
+    res.json({ user: req.user });
+  });
+
+  app.get('/admin/lobby', requireSession, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const snapshot = await getLobbySnapshot();
+      res.json({ snapshot });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.get('/admin/rooms', requireSession, requireAdmin, async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const rooms = await getRooms();
+      res.json({ rooms });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/admin/config.set', requireSession, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { roomSize, autoMatch } = req.body || {};
+      if (
+        typeof roomSize !== 'number' ||
+        !Number.isInteger(roomSize) ||
+        roomSize < 0 ||
+        typeof autoMatch !== 'boolean'
+      ) {
+        return res
+          .status(400)
+          .json({ error: { code: 'BAD_REQUEST', message: 'Invalid config' }, requestId: req.requestId });
+      }
+      await redis.set(CONFIG_ROOM_SIZE, String(roomSize));
+      await redis.set(CONFIG_AUTO_MATCH, autoMatch ? 'true' : 'false');
+      await publish(CHANNEL_LOBBY, LOBBY_JOINED, { snapshot: await getLobbySnapshot() });
+      res.json({ ok: true });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post('/admin/room.create', requireSession, requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
     try {
       let users: string[] = req.body?.uids;
       if (!Array.isArray(users) || users.length === 0) {
