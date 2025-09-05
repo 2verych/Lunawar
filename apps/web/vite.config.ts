@@ -7,6 +7,7 @@ export default defineConfig({
   envPrefix: ['VITE_', 'GOOGLE_'],
   plugins: [react()],
   server: {
+    port: Number(process.env.WEB_PORT) || 5174,
     proxy: {
       '/auth': 'http://localhost:3000',
       '/lobby': 'http://localhost:3000',
