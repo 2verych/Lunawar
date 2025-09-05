@@ -1,4 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  CHANNEL_LOBBY,
+  CHANNEL_ROOM,
+  LOBBY_JOINED,
+  ROOM_CREATED,
+  ROOM_USER_JOINED,
+  ROOM_USER_LEFT,
+} from '@lunawar/shared/src/events';
 import './App.css';
 
 type Tab = 'lobby' | 'rooms' | 'config';
@@ -18,6 +26,10 @@ interface Room {
 export default function App() {
   const [tab, setTab] = useState<Tab>('lobby');
   const [user, setUser] = useState<User | null>(null);
+  const [lobbyUsers, setLobbyUsers] = useState<User[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomSize, setRoomSize] = useState(0);
+  const [autoMatch, setAutoMatch] = useState(false);
 
   useEffect(() => {
     fetch('/admin/me').then(async (r) => {
@@ -45,6 +57,44 @@ export default function App() {
     setUser(null);
   }
 
+  const loadLobby = async () => {
+    const res = await fetch('/admin/lobby');
+    const data = await res.json();
+    setLobbyUsers(data.snapshot.users);
+    setRoomSize(data.snapshot.config.roomSize);
+    setAutoMatch(data.snapshot.config.autoMatch);
+  };
+
+  const loadRooms = async () => {
+    const res = await fetch('/admin/rooms');
+    const data = await res.json();
+    setRooms(data.rooms);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    loadLobby();
+    loadRooms();
+    const ws = new WebSocket(`${location.origin.replace(/^http/, 'ws')}/ws`);
+    ws.addEventListener('open', () => {
+      ws.send(JSON.stringify({ channels: [CHANNEL_LOBBY, CHANNEL_ROOM] }));
+    });
+    ws.addEventListener('message', (ev) => {
+      const { type } = JSON.parse(ev.data);
+      switch (type) {
+        case ROOM_CREATED:
+        case ROOM_USER_JOINED:
+        case ROOM_USER_LEFT:
+          loadRooms();
+          break;
+        case LOBBY_JOINED:
+          loadLobby();
+          break;
+      }
+    });
+    return () => ws.close();
+  }, [user]);
+
   if (!user) {
     return <GoogleAuth onCredential={handleCredential} />;
   }
@@ -60,38 +110,58 @@ export default function App() {
         <button onClick={() => setTab('rooms')}>Rooms</button>
         <button onClick={() => setTab('config')}>Config</button>
       </nav>
-      {tab === 'lobby' && <LobbyView />}
-      {tab === 'rooms' && <RoomsView />}
-      {tab === 'config' && <ConfigView />}
+      {tab === 'lobby' && (
+        <LobbyView
+          users={lobbyUsers}
+          onCreateRoom={async () => {
+            await fetch('/admin/room.create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            await loadRooms();
+            await loadLobby();
+          }}
+          onRefresh={loadLobby}
+        />
+      )}
+      {tab === 'rooms' && (
+        <RoomsView rooms={rooms} onRefresh={loadRooms} />
+      )}
+      {tab === 'config' && (
+        <ConfigView
+          roomSize={roomSize}
+          autoMatch={autoMatch}
+          onRoomSizeChange={setRoomSize}
+          onAutoMatchChange={setAutoMatch}
+          onSave={async () => {
+            await fetch('/admin/config.set', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roomSize, autoMatch }),
+            });
+            await loadLobby();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function LobbyView() {
-  const [users, setUsers] = useState<User[]>([]);
-
-  const load = async () => {
-    const res = await fetch('/admin/lobby');
-    const data = await res.json();
-    setUsers(data.snapshot.users);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const createRoom = async () => {
-    await fetch('/admin/room.create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    await load();
-  };
-
+function LobbyView({
+  users,
+  onCreateRoom,
+  onRefresh,
+}: {
+  users: User[];
+  onCreateRoom: () => void;
+  onRefresh: () => void;
+}) {
   return (
     <section className="lobby">
-      <button onClick={load}>Refresh</button>
-      <button onClick={createRoom}>Create room</button>
+      <div className="lobby-actions">
+        <button onClick={onRefresh}>Refresh</button>
+        <button onClick={onCreateRoom}>Create room</button>
+      </div>
       <ul>
         {users.map((u) => (
           <li key={u.uid}>{u.name}</li>
@@ -101,22 +171,16 @@ function LobbyView() {
   );
 }
 
-function RoomsView() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-
-  const load = async () => {
-    const res = await fetch('/admin/rooms');
-    const data = await res.json();
-    setRooms(data.rooms);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
+function RoomsView({
+  rooms,
+  onRefresh,
+}: {
+  rooms: Room[];
+  onRefresh: () => void;
+}) {
   return (
     <section className="rooms">
-      <button onClick={load}>Refresh</button>
+      <button onClick={onRefresh}>Refresh</button>
       <ul>
         {rooms.map((r) => (
           <li key={r.meta.id}>
@@ -128,29 +192,19 @@ function RoomsView() {
   );
 }
 
-function ConfigView() {
-  const [roomSize, setRoomSize] = useState(0);
-  const [autoMatch, setAutoMatch] = useState(false);
-
-  const load = async () => {
-    const res = await fetch('/admin/lobby');
-    const data = await res.json();
-    setRoomSize(data.snapshot.config.roomSize);
-    setAutoMatch(data.snapshot.config.autoMatch);
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const save = async () => {
-    await fetch('/admin/config.set', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomSize, autoMatch }),
-    });
-  };
-
+function ConfigView({
+  roomSize,
+  autoMatch,
+  onRoomSizeChange,
+  onAutoMatchChange,
+  onSave,
+}: {
+  roomSize: number;
+  autoMatch: boolean;
+  onRoomSizeChange: (n: number) => void;
+  onAutoMatchChange: (b: boolean) => void;
+  onSave: () => void;
+}) {
   return (
     <section className="config">
       <div>
@@ -159,7 +213,7 @@ function ConfigView() {
           <input
             type="number"
             value={roomSize}
-            onChange={(e) => setRoomSize(Number(e.target.value))}
+            onChange={(e) => onRoomSizeChange(Number(e.target.value))}
           />
         </label>
       </div>
@@ -168,12 +222,12 @@ function ConfigView() {
           <input
             type="checkbox"
             checked={autoMatch}
-            onChange={(e) => setAutoMatch(e.target.checked)}
+            onChange={(e) => onAutoMatchChange(e.target.checked)}
           />
           Auto match
         </label>
       </div>
-      <button onClick={save}>Save</button>
+      <button onClick={onSave}>Save</button>
     </section>
   );
 }
@@ -202,3 +256,4 @@ function GoogleAuth({ onCredential }: { onCredential: (cred: string) => void }) 
   }, [onCredential]);
   return <div ref={ref}></div>;
 }
+
