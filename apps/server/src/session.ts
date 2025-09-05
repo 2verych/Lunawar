@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import redis from './redis.js';
 
+export function isAdmin(uid: string): boolean {
+  const list = process.env.ADMIN_EMAILS || '';
+  return list.split(',').map(s => s.trim()).filter(Boolean).includes(uid);
+}
+
 export function parseCookies(req: Request): Record<string, string> {
   const header = req.headers.cookie;
   const cookies: Record<string, string> = {};
@@ -33,4 +38,11 @@ export async function requireSession(req: Request, res: Response, next: NextFunc
   } catch (err) {
     next(err);
   }
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || !isAdmin(req.user.uid)) {
+    return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'Admin only' }, requestId: req.requestId });
+  }
+  next();
 }
