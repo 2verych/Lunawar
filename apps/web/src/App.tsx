@@ -12,7 +12,18 @@ import {
 import type { LobbySnapshot, RoomInfo, User, Message } from '@lunawar/shared/src/types';
 import { l } from '@lunawar/shared/src/i18n';
 import { CONFIG_ROOM_SIZE, CONFIG_AUTO_MATCH } from '@lunawar/shared/src/redisKeys';
-import './App.css';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Container,
+  Box,
+  List,
+  ListItem,
+  TextField,
+  Paper,
+} from '@mui/material';
 
 interface CredentialResponse { credential: string }
 
@@ -139,49 +150,48 @@ export default function App() {
       />
     );
   }
-
   return (
-    <div className="lobby">
-      <header className="lobby-header">
-        <h1>{l('ui.lobby', 'Lobby')}</h1>
-        <div className="user-info">
-          {l('ui.loggedInAs', 'Logged in as')}: {user.name}
-          <button onClick={logout}>{l('ui.logout', 'Logout')}</button>
-        </div>
-      </header>
-      <div className="lobby-actions">
-        <button onClick={joinLobby}>{l('ui.joinLobby', 'Join Lobby')}</button>
-        <button onClick={leaveLobby}>{l('ui.leaveLobby', 'Leave Lobby')}</button>
-      </div>
-      {lobby && (
-        <section className="lobby-users">
-          <h2>{l('ui.lobbyUsers', 'Lobby Users')}</h2>
-          <ul>
-            {lobby.users.map(u => (
-              <li key={u.uid}>{u.name}</li>
+    <Box>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography sx={{ flexGrow: 1 }}>{l('ui.lobby', 'Lobby')}</Typography>
+          <Typography sx={{ mr: 2 }}>{l('ui.loggedInAs', 'Logged in as')}: {user.name}</Typography>
+          <Button color="inherit" onClick={logout}>{l('ui.logout', 'Logout')}</Button>
+        </Toolbar>
+      </AppBar>
+      <Container sx={{ mt: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <Button variant="contained" onClick={joinLobby}>{l('ui.joinLobby', 'Join Lobby')}</Button>
+          <Button variant="contained" onClick={leaveLobby}>{l('ui.leaveLobby', 'Leave Lobby')}</Button>
+        </Box>
+        {lobby && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6">{l('ui.lobbyUsers', 'Lobby Users')}</Typography>
+            <List>
+              {lobby.users.map(u => (
+                <ListItem key={u.uid}>{u.name}</ListItem>
+              ))}
+            </List>
+            <Typography>
+              {CONFIG_ROOM_SIZE}: {lobby.config.roomSize} / {CONFIG_AUTO_MATCH}: {String(lobby.config.autoMatch)}
+            </Typography>
+          </Box>
+        )}
+        <Box>
+          <Typography variant="h6">{l('ui.rooms', 'Rooms')}</Typography>
+          <List>
+            {rooms.map(r => (
+              <ListItem key={r.meta.id}>{r.meta.id} ({r.users.length}/{r.meta.size})</ListItem>
             ))}
-          </ul>
-          <p>
-            {CONFIG_ROOM_SIZE}: {lobby.config.roomSize} / {CONFIG_AUTO_MATCH}: {String(lobby.config.autoMatch)}
-          </p>
-        </section>
-      )}
-      <section className="rooms">
-        <h2>{l('ui.rooms', 'Rooms')}</h2>
-        <ul>
-          {rooms.map(r => (
-            <li key={r.meta.id}>
-              {r.meta.id} ({r.users.length}/{r.meta.size})
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+          </List>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 
 function RoomView({
-  room,
+  room: _room,
   messages,
   onLeave,
   onSend,
@@ -191,49 +201,32 @@ function RoomView({
   onLeave: () => void;
   onSend: (text: string) => void;
 }) {
-  const [showFull, setShowFull] = useState(true);
   const [input, setInput] = useState('');
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === '`') {
-        setShowFull(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
-  const msgs = showFull ? messages : messages.slice(-3);
   return (
-    <div className="room">
-      <button className="exit" onClick={onLeave}>{l('ui.leaveRoom', 'Leave Room')}</button>
-      <div className={`chat ${showFull ? 'full' : 'mini'}`}>
-        <ul className="messages">
-          {msgs.length === 0 ? (
-            <li className="placeholder">{l('ui.noMessages', 'No messages yet')}</li>
+    <Box sx={{ position: 'relative', height: '100vh', bgcolor: 'background.default' }}>
+      <Button sx={{ position: 'absolute', top: 16, left: 16 }} variant="contained" onClick={onLeave}>{l('ui.leaveRoom', 'Leave Room')}</Button>
+      <Paper sx={{ position: 'absolute', top: 0, right: 0, width: 300, height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+        <List sx={{ flex: 1, overflowY: 'auto' }}>
+          {messages.length === 0 ? (
+            <ListItem><Typography color="text.secondary">{l('ui.noMessages', 'No messages yet')}</Typography></ListItem>
           ) : (
-            msgs.map(m => (
-              <li key={m.eventId}><b>{m.from.name}:</b> {m.text}</li>
+            messages.map(m => (
+              <ListItem key={m.eventId}><Typography component="span" fontWeight="bold">{m.from.name}: </Typography>{m.text}</ListItem>
             ))
           )}
-        </ul>
-        {showFull && (
-          <div className="input">
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { onSend(input); setInput(''); }
-              }}
-            />
-            <button onClick={() => { onSend(input); setInput(''); }}>{l('ui.send', 'Send')}</button>
-            <button className="toggle" onClick={() => setShowFull(false)}>{l('ui.closeChat', 'Hide')}</button>
-          </div>
-        )}
-        {!showFull && (
-          <button className="toggle" onClick={() => setShowFull(true)}>{l('ui.openChat', 'Chat')}</button>
-        )}
-      </div>
-    </div>
+        </List>
+        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+          <TextField
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { onSend(input); setInput(''); } }}
+            size="small"
+            fullWidth
+          />
+          <Button variant="contained" onClick={() => { onSend(input); setInput(''); }}>{l('ui.send', 'Send')}</Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
