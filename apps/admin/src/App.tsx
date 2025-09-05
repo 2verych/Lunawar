@@ -7,9 +7,23 @@ import {
   ROOM_USER_JOINED,
   ROOM_USER_LEFT,
 } from '@lunawar/shared/src/events';
-import './App.css';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  Container,
+  Box,
+  List,
+  ListItem,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+} from '@mui/material';
 
-type Tab = 'lobby' | 'rooms' | 'config';
+type AdminTab = 'lobby' | 'rooms' | 'config';
 
 interface User {
   uid: string;
@@ -24,7 +38,7 @@ interface Room {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('lobby');
+  const [tab, setTab] = useState<AdminTab>('lobby');
   const [user, setUser] = useState<User | null>(null);
   const [lobbyUsers, setLobbyUsers] = useState<User[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -100,50 +114,58 @@ export default function App() {
   }
 
   return (
-    <div className="admin">
-      <header>
-        <span>{user.name}</span>
-        <button onClick={logout}>Logout</button>
-      </header>
-      <nav>
-        <button onClick={() => setTab('lobby')}>Lobby</button>
-        <button onClick={() => setTab('rooms')}>Rooms</button>
-        <button onClick={() => setTab('config')}>Config</button>
-      </nav>
-      {tab === 'lobby' && (
-        <LobbyView
-          users={lobbyUsers}
-          onCreateRoom={async () => {
-            await fetch('/admin/room.create', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-            });
-            await loadRooms();
-            await loadLobby();
-          }}
-          onRefresh={loadLobby}
-        />
-      )}
-      {tab === 'rooms' && (
-        <RoomsView rooms={rooms} onRefresh={loadRooms} />
-      )}
-      {tab === 'config' && (
-        <ConfigView
-          roomSize={roomSize}
-          autoMatch={autoMatch}
-          onRoomSizeChange={setRoomSize}
-          onAutoMatchChange={setAutoMatch}
-          onSave={async () => {
-            await fetch('/admin/config.set', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ roomSize, autoMatch }),
-            });
-            await loadLobby();
-          }}
-        />
-      )}
-    </div>
+    <Box>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography sx={{ flexGrow: 1 }}>{user.name}</Typography>
+          <Button color="inherit" onClick={logout}>Logout</Button>
+        </Toolbar>
+      </AppBar>
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        centered
+      >
+        <Tab label="Lobby" value="lobby" />
+        <Tab label="Rooms" value="rooms" />
+        <Tab label="Config" value="config" />
+      </Tabs>
+      <Container sx={{ mt: 2 }}>
+        {tab === 'lobby' && (
+          <LobbyView
+            users={lobbyUsers}
+            onCreateRoom={async () => {
+              await fetch('/admin/room.create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              });
+              await loadRooms();
+              await loadLobby();
+            }}
+            onRefresh={loadLobby}
+          />
+        )}
+        {tab === 'rooms' && (
+          <RoomsView rooms={rooms} onRefresh={loadRooms} />
+        )}
+        {tab === 'config' && (
+          <ConfigView
+            roomSize={roomSize}
+            autoMatch={autoMatch}
+            onRoomSizeChange={setRoomSize}
+            onAutoMatchChange={setAutoMatch}
+            onSave={async () => {
+              await fetch('/admin/config.set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomSize, autoMatch }),
+              });
+              await loadLobby();
+            }}
+          />
+        )}
+      </Container>
+    </Box>
   );
 }
 
@@ -157,17 +179,17 @@ function LobbyView({
   onRefresh: () => void;
 }) {
   return (
-    <section className="lobby">
-      <div className="lobby-actions">
-        <button onClick={onRefresh}>Refresh</button>
-        <button onClick={onCreateRoom}>Create room</button>
-      </div>
-      <ul>
+    <Box>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Button variant="contained" onClick={onRefresh}>Refresh</Button>
+        <Button variant="contained" onClick={onCreateRoom}>Create room</Button>
+      </Box>
+      <List>
         {users.map((u) => (
-          <li key={u.uid}>{u.name}</li>
+          <ListItem key={u.uid}>{u.name}</ListItem>
         ))}
-      </ul>
-    </section>
+      </List>
+    </Box>
   );
 }
 
@@ -179,16 +201,16 @@ function RoomsView({
   onRefresh: () => void;
 }) {
   return (
-    <section className="rooms">
-      <button onClick={onRefresh}>Refresh</button>
-      <ul>
+    <Box>
+      <Button variant="contained" sx={{ mb: 2 }} onClick={onRefresh}>Refresh</Button>
+      <List>
         {rooms.map((r) => (
-          <li key={r.meta.id}>
+          <ListItem key={r.meta.id}>
             {r.meta.id}: {r.users.map((u) => u.name).join(', ')}
-          </li>
+          </ListItem>
         ))}
-      </ul>
-    </section>
+      </List>
+    </Box>
   );
 }
 
@@ -206,29 +228,19 @@ function ConfigView({
   onSave: () => void;
 }) {
   return (
-    <section className="config">
-      <div>
-        <label>
-          Room size:
-          <input
-            type="number"
-            value={roomSize}
-            onChange={(e) => onRoomSizeChange(Number(e.target.value))}
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          <input
-            type="checkbox"
-            checked={autoMatch}
-            onChange={(e) => onAutoMatchChange(e.target.checked)}
-          />
-          Auto match
-        </label>
-      </div>
-      <button onClick={onSave}>Save</button>
-    </section>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 300 }}>
+      <TextField
+        type="number"
+        label="Room size"
+        value={roomSize}
+        onChange={(e) => onRoomSizeChange(Number(e.target.value))}
+      />
+      <FormControlLabel
+        control={<Checkbox checked={autoMatch} onChange={(e) => onAutoMatchChange(e.target.checked)} />}
+        label="Auto match"
+      />
+      <Button variant="contained" onClick={onSave}>Save</Button>
+    </Box>
   );
 }
 
