@@ -9,7 +9,8 @@
     "dev:docker": "bash scripts/dev-with-redis.sh",
     "dev:web": "npm run dev -w @lunawar/web",
     "dev:server": "npm run dev:docker",
-    "dev": "npm-run-all --parallel dev:web dev:server",
+    "dev:admin": "npm run dev -w @lunawar/admin",
+    "dev": "npm-run-all --parallel dev:web dev:server dev:admin",
     "build": "npm run build --workspaces",
     "setup": "npm install",
     "start": "npm run setup && npm run build && npm run dev"
